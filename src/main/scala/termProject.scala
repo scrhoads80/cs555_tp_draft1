@@ -1,7 +1,12 @@
+
+import java.io.PrintWriter
+
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
 import org.graphframes.GraphFrame
+
+import scala.io._
 
 object TermProjectRhoadsMalenseck{
 
@@ -25,8 +30,6 @@ object TermProjectRhoadsMalenseck{
     println(s"output dir: $outputDirectory")
     println(s"local or yarn: $localOrYarn")
 
-    return
-
 //    val spark = SparkSession.builder().appName("Simple App").config("spark.master", "local[4]").getOrCreate()
     val spark = if(localOrYarn == "local") {
       SparkSession.builder().appName("TermProject").config("spark.master", "local[4]").getOrCreate()
@@ -43,20 +46,20 @@ object TermProjectRhoadsMalenseck{
     // write data frame to disk
     //    commentDf.write.parquet("/home/scrhoads/workspaces/graphx_learning/rsrc/submission_parquet2")
 
-    val septSubmissionDf = spark.read.parquet("/home/scrhoads/workspaces/cs555_load_save_df/rsrc/parquet/RS_2016-09")
+    val septSubmissionDf = spark.read.parquet(s"$submissionParquetDirectory/RS_2016-09")
     val septModSchemaSubmissionDf = trimSchemaForSubmissions(septSubmissionDf)
 
 //    val septColsSet = septSubmissionDf.schema.fields.map(_.name).toSet
 
-    val octSubmissionDf = spark.read.parquet("/home/scrhoads/workspaces/cs555_load_save_df/rsrc/parquet/RS_2016-10")
+    val octSubmissionDf = spark.read.parquet(s"$submissionParquetDirectory/RS_2016-10")
     val octModSchemaSubmissionDf = trimSchemaForSubmissions(octSubmissionDf)
 
 
-    val septCommentDf = spark.read.parquet("/home/scrhoads/workspaces/cs555_load_save_df/rsrc/parquet/RC_2016-09")
+    val septCommentDf = spark.read.parquet(s"$commentParquetDirectory/RC_2016-09")
     val septModSchemaCommentdf = trimSchemaForComments(septCommentDf)
 //    septModSchemaCommentdf.printSchema()
 
-    val octCommentDf = spark.read.parquet("/home/scrhoads/workspaces/cs555_load_save_df/rsrc/parquet/RC_2016-10")
+    val octCommentDf = spark.read.parquet(s"$commentParquetDirectory/RC_2016-10")
     val octModSchemaCommentdf = trimSchemaForComments(octCommentDf)
 
 //    val diffColSet = octColsSet -- septColsSet
@@ -80,8 +83,8 @@ object TermProjectRhoadsMalenseck{
     val intIdSubmissionDf = createColumnWithHashedValue(zeroCommentsRemovedSubmissionDf, "name", "link_hash")
     val intIdCommentDf = createColumnWithHashedValue(nonDeletedCommentsDf, "link_id", "link_hash")
 
-    val addAuthIdSubmissionDf = createColumnWithHashedValue(intIdSubmissionDf, "author", "op_id")
-    val addAuthIdCommentDf = createColumnWithHashedValue(intIdCommentDf, "author", "auth_id")
+    val addAuthIdSubmissionDf = createColumnWithHashedValue(intIdSubmissionDf, "author", "op_id").filter($"subreddit" === "The_Donald")
+    val addAuthIdCommentDf = createColumnWithHashedValue(intIdCommentDf, "author", "auth_id").filter($"subreddit" === "The_Donald")
 
     val allSubmissionAuthId = addAuthIdSubmissionDf.select($"op_id").withColumnRenamed("op_id", "id")
     val allCommentAuthId = addAuthIdCommentDf.select($"auth_id").withColumnRenamed("auth_id", "id")
@@ -108,7 +111,17 @@ object TermProjectRhoadsMalenseck{
 //    val g1 = GraphFrame(commentDf, null)
 //    println(usersCommentingOnUsersGraphFrame.vertices.count())
 //    println(usersCommentingOnUsersGraphFrame.edges.count())
-    val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(5).run()
+    val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(2).run()
+    sscUsersOnUsers.show(10)
+
+    new PrintWriter(s"$outputDirectory/output") {
+      try {
+        write(sscUsersOnUsers.show(100).toString)
+      } finally {
+        close()
+      }
+    }
+
     spark.stop()
 
   }
