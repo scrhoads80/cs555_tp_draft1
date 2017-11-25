@@ -115,11 +115,11 @@ object TermProjectRhoadsMalenseck{
 //    println(usersCommentingOnUsersGraphFrame.edges.count())
     val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(2).run()
     val orderedSscUsers = sscUsersOnUsers.orderBy("component")
-    sscUsersOnUsers.show(10)
+    orderedSscUsers.show(10)
 
-    new PrintWriter(new File(s"$outputDirectory/output")) {
+    new PrintWriter(new File(s"$outputDirectory/sscOutput")) {
       try {
-        write(sscUsersOnUsers.show(100).toString)
+        write(orderedSscUsers.show(100).toString)
       } finally {
         close()
       }
