@@ -1,5 +1,5 @@
 
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
 
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -65,8 +65,10 @@ object TermProjectRhoadsMalenseck{
 //    val diffColSet = octColsSet -- septColsSet
 //    println(diffColSet)
 
-    val submissionDf = septModSchemaSubmissionDf.union(octModSchemaSubmissionDf)
-    val commentDf = septModSchemaCommentdf.union(octModSchemaCommentdf)
+//    val submissionDf = septModSchemaSubmissionDf.union(octModSchemaSubmissionDf)
+//    val commentDf = septModSchemaCommentdf.union(octModSchemaCommentdf)
+      val submissionDf = septModSchemaSubmissionDf
+      val commentDf = septModSchemaCommentdf
 
     val nonDeletedSubmissionDf = removeDeletedAuthors(submissionDf, spark)
     val nonDeletedCommentsDf = removeDeletedAuthors(commentDf, spark)
@@ -112,9 +114,10 @@ object TermProjectRhoadsMalenseck{
 //    println(usersCommentingOnUsersGraphFrame.vertices.count())
 //    println(usersCommentingOnUsersGraphFrame.edges.count())
     val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(2).run()
+    val orderedSscUsers = sscUsersOnUsers.orderBy("component")
     sscUsersOnUsers.show(10)
 
-    new PrintWriter(s"$outputDirectory/output") {
+    new PrintWriter(new File(s"$outputDirectory/output")) {
       try {
         write(sscUsersOnUsers.show(100).toString)
       } finally {
