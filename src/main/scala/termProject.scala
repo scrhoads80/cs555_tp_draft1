@@ -88,6 +88,11 @@ object TermProjectRhoadsMalenseck{
     val addAuthIdSubmissionDf = createColumnWithHashedValue(intIdSubmissionDf, "author", "op_id").filter($"subreddit" === "The_Donald")
     val addAuthIdCommentDf = createColumnWithHashedValue(intIdCommentDf, "author", "auth_id").filter($"subreddit" === "The_Donald")
 
+    println("\n\n\n showing populat node author name\n\n")
+    addAuthIdSubmissionDf.filter($"op_id" === -2146844542).show()
+    addAuthIdCommentDf.filter($"auth_id" === -2146844542).show()
+    println("\n\n\n should have printed by now\n\n")
+
     val allSubmissionAuthId = addAuthIdSubmissionDf.select($"op_id").withColumnRenamed("op_id", "id")
     val allCommentAuthId = addAuthIdCommentDf.select($"auth_id").withColumnRenamed("auth_id", "id")
 
@@ -114,9 +119,14 @@ object TermProjectRhoadsMalenseck{
 //    println(usersCommentingOnUsersGraphFrame.vertices.count())
 //    println(usersCommentingOnUsersGraphFrame.edges.count())
     val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(2).run()
-    val orderedSscUsers = sscUsersOnUsers.orderBy("component")
-    orderedSscUsers.show(10)
+    sscUsersOnUsers.write.parquet(s"$commentParquetDirectory/stronglyConnectedUsersViaCommanets")
 
+    val orderedSscUsers = sscUsersOnUsers.orderBy("component")
+    orderedSscUsers.show(100)
+
+    orderedSscUsers.write.csv(s"$outputDirectory/sscOutput.csv")
+
+    /*
     new PrintWriter(new File(s"$outputDirectory/sscOutput")) {
       try {
         write(orderedSscUsers.show(100).toString)
@@ -124,6 +134,7 @@ object TermProjectRhoadsMalenseck{
         close()
       }
     }
+    */
 
     spark.stop()
 
