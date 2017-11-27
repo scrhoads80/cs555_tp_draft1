@@ -5,13 +5,14 @@ object SaveSubmissionAndCommentDf {
 
   val DELETED_TXT = """[deleted]"""
   val SUBREDDIT_FILTER_LIST = List("The_Donald", "HillaryClinton", "SandersForPresident", "politics",
-    "Conservative", "Republican", "Democrats", "Libertarian", "Ask_Politics", "POLITIC", "PoliticalDiscussion")
+    "Conservative", "Republican", "Democrats", "Libertarian", "Ask_Politics", "POLITIC", "PoliticalDiscussion",
+    "NeutralPolitics", "ModeratePolitics", "Anarchism", "Anarcho_Capitalism")
 
   def main(args: Array[String]): Unit = {
 
-    if(args.length != 5) {
+    if(args.length != 6) {
       println("error with number of arguments")
-      println("Need: commentParquetDir submissionParquetDir outputDir <local | yarn> <comma seperated list of 2digit months. No Spaces! e.g. 09,10,11>")
+      println("Need: commentParquetDir submissionParquetDir outputDir <local | yarn> <comma seperated list of 2digit months. No Spaces! e.g. 09,10,11> <true | false>-true to limit to political subreddits")
       return
     }
 
@@ -20,12 +21,20 @@ object SaveSubmissionAndCommentDf {
     val outputDirectory = args(2)
     val localOrYarn = args(3)
     val commanStrOfMonths = args(4)
+    val doLimitToPoliticalSubredditStr = args(5)
+
+    val doLimitToPoliticalSubreddit = if(doLimitToPoliticalSubredditStr == "true") {
+      true
+    } else {
+      false
+    }
 
     println(s"comment parquet input dir: $commentParquetDirectory")
     println(s"submission parquet input dir: $submissionParquetDirectory")
     println(s"output dir: $outputDirectory")
     println(s"yarn or local: $localOrYarn")
     println(s"months: $commanStrOfMonths")
+    println(s"doLimitToPoliticalSubreddit: $doLimitToPoliticalSubreddit")
 
     val spark = if(localOrYarn == "local") {
       SparkSession.builder().appName("TermProject").config("spark.master", "local[4]").getOrCreate()
@@ -38,10 +47,12 @@ object SaveSubmissionAndCommentDf {
 
     // comprehension loading up next parquet, modifying schema, and unioning w/ initial
     val combinedSubmissionDf = (for (month <- monthsList) yield
-      trimSchemaForSubmissions(retrieveParquetAndTrimContent(submissionParquetDirectory, "RS_2016", month, true, spark))) reduce (_ union _)
+      trimSchemaForSubmissions(retrieveParquetAndTrimContent(submissionParquetDirectory, "RS_2016",
+        month, true, spark, doLimitToPoliticalSubreddit))) reduce (_ union _)
 
     val combinedCommentDf = (for (month <- monthsList) yield
-      trimSchemaForComments(retrieveParquetAndTrimContent(submissionParquetDirectory, "RC_2016", month, false, spark))) reduce (_ union _)
+      trimSchemaForComments(retrieveParquetAndTrimContent(submissionParquetDirectory, "RC_2016",
+        month, false, spark, doLimitToPoliticalSubreddit))) reduce (_ union _)
 
     combinedSubmissionDf.write.parquet(s"$submissionParquetDirectory/submissionPreppedDf")
     combinedCommentDf.write.parquet(s"$commentParquetDirectory/commentPreppedDf")
@@ -51,22 +62,29 @@ object SaveSubmissionAndCommentDf {
 
   }
 
-  def retrieveParquetAndTrimContent(submissionParquetDirectory:String, typeYearPrefix:String, month:String, isSubmission: Boolean, sparkSession: SparkSession): DataFrame = {
+  def retrieveParquetAndTrimContent(submissionParquetDirectory:String, typeYearPrefix:String, month:String, isSubmission: Boolean,
+                                    sparkSession: SparkSession, doLimitToPoliticalSubreddit: Boolean): DataFrame = {
     import sparkSession.implicits._
 
     // remove deleted authors, filter on specific subreddits, then return to be unioned with others
 
     val commonOperationDf = removeDeletedAuthors(sparkSession.read.parquet(s"$submissionParquetDirectory/$typeYearPrefix-$month"), sparkSession)
-      .filter(($"subreddit".isin(SUBREDDIT_FILTER_LIST:_*)))
+
+
+    val filterOnSubredditDf = if(doLimitToPoliticalSubreddit) {
+      commonOperationDf.filter(($"subreddit".isin(SUBREDDIT_FILTER_LIST:_*)))
+    } else {
+      commonOperationDf
+    }
 
     val retDf = if(isSubmission) {
-      val removedZeroCommentsDf = removePostsWithZeroComments(commonOperationDf, sparkSession)
+      val removedZeroCommentsDf = removePostsWithZeroComments(filterOnSubredditDf, sparkSession)
       val nameToLinkHashDf = createColumnWithHashedValue(removedZeroCommentsDf, "name", "link_hash")
       val authToOpIdDf = createColumnWithHashedValue(nameToLinkHashDf, "author", "op_id")
       val subredditIdDf = createColumnWithHashedValue(authToOpIdDf, "subreddit", "sub_id")
       subredditIdDf
     } else {
-      val linkIdToLinkHasDf = createColumnWithHashedValue(commonOperationDf, "link_id", "link_hash")
+      val linkIdToLinkHasDf = createColumnWithHashedValue(filterOnSubredditDf, "link_id", "link_hash")
       val authToAuthId = createColumnWithHashedValue(linkIdToLinkHasDf, "author", "auth_id")
       val subredditIdDf = createColumnWithHashedValue(authToAuthId, "subreddit", "sub_id")
       subredditIdDf

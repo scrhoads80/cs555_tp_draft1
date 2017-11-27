@@ -57,15 +57,39 @@ object WorkWithGraphAlgResutls {
     val uCuPopulairPairMostCommonDst = uCuPopularPair.groupBy("dst").count().orderBy(desc("count"))
     uCuPopulairPairMostCommonDst.show(20)
 
-    // todo triangle count
+    val uCuTriangleCntDf = spark.read.parquet(s"$graphAlgoParquetDir/userCommentOnUserTriangleCount")
+    val uCuTriangleCntOrderdDf = uCuTriangleCntDf.orderBy(desc("count"))
+    uCuTriangleCntOrderdDf.show(20)
 
-
-
-
-
-
+    // todo join this with df to get names
 
     // sub post user comment results
+
+    // strongly connected
+    val subPostUserCommentSscDf = spark.read.parquet(s"$graphAlgoParquetDir/stronglyConnectedUsersViaSubPostUserComment")
+
+    val sPucSscComponentCountDf = subPostUserCommentSscDf.groupBy("component").count().orderBy(desc("count")).filter($"count" > 2)
+    sPucSscComponentCountDf.show(20)
+
+    // page rank
+    val sPucsPageRankVertDf = spark.read.parquet(s"$graphAlgoParquetDir/subPostUserCommentPageRankVertices")
+    val sPucsPageRankSortedDf = sPucsPageRankVertDf.orderBy(desc("pagerank"))
+    sPucsPageRankSortedDf.show(20)
+
+    //popular pair - focused on posting to subreddits b/c commenting was addressed in the graph results above
+    val sPucsPopularPairDf = spark.read.parquet(s"$graphAlgoParquetDir/subPostUserCommentUserPostSubCount")
+    val sPucsPopularPairPostsSortdedDf = sPucsPopularPairDf.filter($"count" > 1).sort($"count".desc)
+    sPucsPopularPairPostsSortdedDf.show(20)
+
+    val sPucsPopularPairMostCommonDst = sPucsPopularPairDf.groupBy("dst").count().orderBy(desc("count"))
+    sPucsPopularPairMostCommonDst.show(20)
+
+    // triangle
+    val sPucsTriangleCntDf = spark.read.parquet(s"$graphAlgoParquetDir/subPostUserCommentTriangleCount")
+    val sPucsTriangleCntOrderedDf = sPucsTriangleCntDf.orderBy(desc("count"))
+    sPucsTriangleCntOrderedDf.show(20)
+
+    // todo join this with df to get names
 
   }
 }
