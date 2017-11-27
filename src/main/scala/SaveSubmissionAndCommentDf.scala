@@ -63,11 +63,13 @@ object SaveSubmissionAndCommentDf {
       val removedZeroCommentsDf = removePostsWithZeroComments(commonOperationDf, sparkSession)
       val nameToLinkHashDf = createColumnWithHashedValue(removedZeroCommentsDf, "name", "link_hash")
       val authToOpIdDf = createColumnWithHashedValue(nameToLinkHashDf, "author", "op_id")
-      authToOpIdDf
+      val subredditIdDf = createColumnWithHashedValue(authToOpIdDf, "subreddit", "sub_id")
+      subredditIdDf
     } else {
       val linkIdToLinkHasDf = createColumnWithHashedValue(commonOperationDf, "link_id", "link_hash")
       val authToAuthId = createColumnWithHashedValue(linkIdToLinkHasDf, "author", "auth_id")
-      authToAuthId
+      val subredditIdDf = createColumnWithHashedValue(authToAuthId, "subreddit", "sub_id")
+      subredditIdDf
     }
 
     retDf
