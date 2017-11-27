@@ -41,10 +41,10 @@ object TermProjectRhoadsMalenseck{
 
     val usersCommentingOnUsersGraphFrame = GraphFrame(vertDf, edgeDf)
 
-    val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(5).run()
+    val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(10).run()
     sscUsersOnUsers.write.parquet(s"$graphVertEdgeDfParquetDir/stronglyConnectedUsersViaComments")
 
-    val pageRankOnUsersGraph = usersCommentingOnUsersGraphFrame.pageRank.maxIter(5).run()
+    val pageRankOnUsersGraph = usersCommentingOnUsersGraphFrame.pageRank.maxIter(10).run()
     pageRankOnUsersGraph.vertices.write.parquet(s"$graphVertEdgeDfParquetDir/userCommentOnUsersPageRankVertices")
     pageRankOnUsersGraph.edges.write.parquet(s"$graphVertEdgeDfParquetDir/userCommentOnUsersPageRankEdges")
 
@@ -61,10 +61,10 @@ object TermProjectRhoadsMalenseck{
 
     val subPostUserCommentGraphFrame = GraphFrame(subPostUserCommentVertDf, subPostUserCommentEdgeDf)
 
-    val sscSubPostUserCommentGraphFrame = subPostUserCommentGraphFrame.stronglyConnectedComponents.maxIter(5).run()
+    val sscSubPostUserCommentGraphFrame = subPostUserCommentGraphFrame.stronglyConnectedComponents.maxIter(10).run()
     sscSubPostUserCommentGraphFrame.write.parquet(s"$graphVertEdgeDfParquetDir/stronglyConnectedUsersViaSubPostUserComment")
 
-    val pageRankSubPostUserGraphFrame = subPostUserCommentGraphFrame.pageRank.maxIter(5).run()
+    val pageRankSubPostUserGraphFrame = subPostUserCommentGraphFrame.pageRank.maxIter(10).run()
     pageRankSubPostUserGraphFrame.vertices.write.parquet(s"$graphVertEdgeDfParquetDir/subPostUserCommentPageRankVertices")
     pageRankSubPostUserGraphFrame.edges.write.parquet(s"$graphVertEdgeDfParquetDir/subPostUserCommentPageRankEdges")
 
