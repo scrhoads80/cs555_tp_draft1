@@ -15,6 +15,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-streaming" % spark,
   "org.apache.spark" %% "spark-graphx" % spark,
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "com.typesafe.scala-logging" % "scala-logging-slf4j_2.11" % "2.1.2"
+  "com.typesafe.scala-logging" % "scala-logging-slf4j_2.11" % "2.1.2",
+  "com.databricks" % "spark-csv_2.11" % "1.5.0"
 )
 

@@ -1,0 +1,31 @@
+
+There are several objects to run to save different iterations of results to disk.
+
+Below are the commands to execute in order:
+
+1) SaveSubmissionAndCommentDf: Parse the data and create the base data frames. There is a boolean that limits the subreddits to political ones
+when the boolean is set to true
+    * ./spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --master yarn --num-executors 25 --class SaveSubmissionAndCommentDf ~/graphx_learning_2.11-0.1.jar hdfs:///tp/parquet hdfs:///tp/parquet hdfs:///tp/parquet yarn 08,09,10,11 true
+
+2) CreateAndSaveInitialGraphs: Reads in parque dataframes saved by the previous step and creates two graphs.  The first
+has users as Nodes/Vertices, and if a user comments on another user's post or comment, an edge is created.  The second
+has users and subreddits as Nodes/Vertices. If a user creates a post, then an edge is created between the subreddit and
+the user. If a user comments on another user, then an edge is created.
+    * ./spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --master yarn --num-executors 25 --class CreateAndSaveInitialGraphs ~/graphx_learning_2.11-0.1.jar hdfs:///tp/parquet hdfs:///tp/parquet yarn
+
+3) TermProjectRhoadsMalenseck: Reads two graphs and runs graphing algorithms on them.
+    * ./spark-submit --conf spark.yarn.executor.memoryOverhead=600 --executor-memory 2G --executor-cores 2 --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --master yarn --num-executors 25 --class TermProjectRhoadsMalenseck ~/graphx_learning_2.11-0.1.jar hdfs:///tp/parquet hdfs:///tp/parquet yarn
+
+4) WorkWithGraphAlgResutls:
+    * ./spark-submit --conf spark.yarn.executor.memoryOverhead=600 --executor-memory 2G --executor-cores 2 --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --master yarn --num-executors 25 --class WorkWithGraphAlgResutls ~/graphx_learning_2.11-0.1.jar hdfs:///tp/parquet hdfs:///tp/output yarn
+
+5) CollabAcrossMultipleSubredditMotif:
+    * ./spark-submit --conf spark.yarn.executor.memoryOverhead=600 --executor-memory 2G --executor-cores 2 --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --master yarn --num-executors 25 --class CollabAcrossMultipleSubredditMotif ~/graphx_learning_2.11-0.1.jar hdfs:///tp/parquet hdfs:///tp/output yarn
+
+-----
+The output is from WorkWithGraph and CollabAcross ends up in /tp/output, but is distributed across the hdfs.  The
+below command will merge all of the part* files into one file:
+
+$HADOOP_HOME/bin/hdfs dfs -getmerge /tp/output/popularPairAllCommentsCsv ./popularPairAllCommentsCsv.csv
+
+This will need to be done for each output folder in /tp/output.
