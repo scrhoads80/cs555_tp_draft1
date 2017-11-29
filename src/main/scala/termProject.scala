@@ -25,7 +25,7 @@ object TermProjectRhoadsMalenseck{
     val localOrYarn = args(2)
 
     println(s"combined dataframe parquet input dir: $graphVertEdgeDfParquetDir")
-    println(s"output dir: $outputDirectory")
+    println(s"output parquet dir: $outputDirectory")
     println(s"local or yarn: $localOrYarn")
 
     val spark = if(localOrYarn == "local") {
@@ -42,17 +42,17 @@ object TermProjectRhoadsMalenseck{
     val usersCommentingOnUsersGraphFrame = GraphFrame(vertDf, edgeDf)
 
     val sscUsersOnUsers = usersCommentingOnUsersGraphFrame.stronglyConnectedComponents.maxIter(10).run()
-    sscUsersOnUsers.write.parquet(s"$graphVertEdgeDfParquetDir/stronglyConnectedUsersViaComments")
+    sscUsersOnUsers.write.parquet(s"$outputDirectory/stronglyConnectedUsersViaComments")
 
     val pageRankOnUsersGraph = usersCommentingOnUsersGraphFrame.pageRank.maxIter(10).run()
-    pageRankOnUsersGraph.vertices.write.parquet(s"$graphVertEdgeDfParquetDir/userCommentOnUsersPageRankVertices")
-    pageRankOnUsersGraph.edges.write.parquet(s"$graphVertEdgeDfParquetDir/userCommentOnUsersPageRankEdges")
+    pageRankOnUsersGraph.vertices.write.parquet(s"$outputDirectory/userCommentOnUsersPageRankVertices")
+    pageRankOnUsersGraph.edges.write.parquet(s"$outputDirectory/userCommentOnUsersPageRankEdges")
 
     val userCommentUserPopularUserPair = edgeDf.groupBy("src", "dst").count().orderBy(desc("count"))
-    userCommentUserPopularUserPair.write.parquet(s"$graphVertEdgeDfParquetDir/userCommentOnUserPopularPair")
+    userCommentUserPopularUserPair.write.parquet(s"$outputDirectory/userCommentOnUserPopularPair")
 
-    val userCommentUserTriangleCountDf = usersCommentingOnUsersGraphFrame.triangleCount.run()
-    userCommentUserTriangleCountDf.write.parquet(s"$graphVertEdgeDfParquetDir/userCommentOnUserTriangleCount")
+//    val userCommentUserTriangleCountDf = usersCommentingOnUsersGraphFrame.triangleCount.run()
+//    userCommentUserTriangleCountDf.write.parquet(s"$outputDirectory/userCommentOnUserTriangleCount")
 
     // load up subreddit - post - user - comment vert and edges
 
@@ -62,21 +62,21 @@ object TermProjectRhoadsMalenseck{
     val subPostUserCommentGraphFrame = GraphFrame(subPostUserCommentVertDf, subPostUserCommentEdgeDf)
 
     val sscSubPostUserCommentGraphFrame = subPostUserCommentGraphFrame.stronglyConnectedComponents.maxIter(10).run()
-    sscSubPostUserCommentGraphFrame.write.parquet(s"$graphVertEdgeDfParquetDir/stronglyConnectedUsersViaSubPostUserComment")
+    sscSubPostUserCommentGraphFrame.write.parquet(s"$outputDirectory/stronglyConnectedUsersViaSubPostUserComment")
 
     val pageRankSubPostUserGraphFrame = subPostUserCommentGraphFrame.pageRank.maxIter(10).run()
-    pageRankSubPostUserGraphFrame.vertices.write.parquet(s"$graphVertEdgeDfParquetDir/subPostUserCommentPageRankVertices")
-    pageRankSubPostUserGraphFrame.edges.write.parquet(s"$graphVertEdgeDfParquetDir/subPostUserCommentPageRankEdges")
+    pageRankSubPostUserGraphFrame.vertices.write.parquet(s"$outputDirectory/subPostUserCommentPageRankVertices")
+    pageRankSubPostUserGraphFrame.edges.write.parquet(s"$outputDirectory/subPostUserCommentPageRankEdges")
 
     import spark.implicits._
 
     val subPostUserCommentUserPostingSubredditPopularPair = subPostUserCommentEdgeDf.filter($"relationship" === "posted")
       .groupBy("src", "dst").count().orderBy(desc("count"))
 
-    subPostUserCommentUserPostingSubredditPopularPair.write.parquet(s"$graphVertEdgeDfParquetDir/subPostUserCommentUserPostSubCount")
+    subPostUserCommentUserPostingSubredditPopularPair.write.parquet(s"$outputDirectory/subPostUserCommentUserPostSubCount")
 
-    val subPostUserCommentTriangleCountDf = subPostUserCommentGraphFrame.triangleCount.run()
-    subPostUserCommentTriangleCountDf.write.parquet(s"$graphVertEdgeDfParquetDir/subPostUserCommentTriangleCount")
+//    val subPostUserCommentTriangleCountDf = subPostUserCommentGraphFrame.triangleCount.run()
+//    subPostUserCommentTriangleCountDf.write.parquet(s"$outputDirectory/subPostUserCommentTriangleCount")
 
     spark.stop()
 

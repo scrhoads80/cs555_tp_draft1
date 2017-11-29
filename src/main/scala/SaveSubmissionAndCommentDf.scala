@@ -31,7 +31,7 @@ object SaveSubmissionAndCommentDf {
 
     println(s"comment parquet input dir: $commentParquetDirectory")
     println(s"submission parquet input dir: $submissionParquetDirectory")
-    println(s"output dir: $outputDirectory")
+    println(s"output parquet dir: $outputDirectory")
     println(s"yarn or local: $localOrYarn")
     println(s"months: $commanStrOfMonths")
     println(s"doLimitToPoliticalSubreddit: $doLimitToPoliticalSubreddit")
@@ -50,12 +50,16 @@ object SaveSubmissionAndCommentDf {
       trimSchemaForSubmissions(retrieveParquetAndTrimContent(submissionParquetDirectory, "RS_2016",
         month, true, spark, doLimitToPoliticalSubreddit))) reduce (_ union _)
 
+    combinedSubmissionDf.printSchema()
+
     val combinedCommentDf = (for (month <- monthsList) yield
       trimSchemaForComments(retrieveParquetAndTrimContent(submissionParquetDirectory, "RC_2016",
         month, false, spark, doLimitToPoliticalSubreddit))) reduce (_ union _)
 
-    combinedSubmissionDf.write.parquet(s"$submissionParquetDirectory/submissionPreppedDf")
-    combinedCommentDf.write.parquet(s"$commentParquetDirectory/commentPreppedDf")
+    combinedCommentDf.printSchema()
+
+    combinedSubmissionDf.write.parquet(s"$outputDirectory/submissionPreppedDf")
+    combinedCommentDf.write.parquet(s"$outputDirectory/commentPreppedDf")
 
     spark.stop()
 
@@ -94,18 +98,29 @@ object SaveSubmissionAndCommentDf {
   }
 
   def trimSchemaForSubmissions(df: DataFrame): DataFrame = {
-    df.drop("author_flair_css_class", "author_flair_text", "clicked", "hidden", "is_self", "likes")
+    val keptColDf = df.drop("author_flair_css_class", "author_flair_text", "clicked", "hidden", "is_self", "likes")
       .drop("link_flair_css_class", "link_flair_text", "locked", "media", "media_embed", "over_18", "permalink", "saved")
       .drop("score", "selftext", "selftext_html", "thumbnail", "title", "url", "edited", "distinguished", "stickied")
       .drop("adserver_click_url", "adserver_imp_pixel", "preview", "secure_media", "secure_media_embed" )
       .drop("archived", "contest_mode", "downs", "href_url", "domain", "gilded", "hide_score", "imp_pixel", "mobile_ad_url", "post_hint")
-      .drop("quarantine", "retrieved_on", "third_pary_tracking", "third_party_tracking_2", "ups", "promoted_display_name", "promoted_url")
-      .drop("spoiler")
+      .drop("quarantine", "retrieved_on", "third_party_tracking", "third_party_tracking_2", "ups", "promoted_display_name", "promoted_url")
+      .drop("spoiler", "original_link", "from", "from_id", "from_kind", "promoted", "promoted_by")
+
+//    keptColDf.printSchema()
+
+    keptColDf
   }
 
   def trimSchemaForComments(df: DataFrame): DataFrame = {
-    df.drop("author_flair_css_class", "author_flair_text", "controversiality", "distinguished", "edited", "gilded")
+    /*df.drop("author_flair_css_class", "author_flair_text", "controversiality", "distinguished", "edited", "gilded")
       .drop("retrieved_on", "score", "stickied", "ups")
+      */
+
+    val keepColNames = Seq("author", "body", "created_utc", "id", "link_id", "parent_id", "subreddit", "subreddit_id",
+      "link_hash", "auth_id", "sub_id")
+
+    val keptColDf = df.select(keepColNames.head, keepColNames.tail: _*)
+    keptColDf
   }
 
   def createColumnWithHashedValue(df: DataFrame, oldColumnName: String, newColumnName: String): DataFrame = {

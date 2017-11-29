@@ -15,7 +15,7 @@ object CreateAndSaveInitialGraphs {
     val localOrYarn = args(2)
 
     println(s"combined dataframe parquet input dir: $combinedDfParquetDir")
-    println(s"output dir: $outputDirectory")
+    println(s"output parquet dir: $outputDirectory")
     println(s"local or yarn: $localOrYarn")
 
     val spark = if (localOrYarn == "local") {
@@ -51,8 +51,8 @@ object CreateAndSaveInitialGraphs {
 
     val usersCommentingOnUsersGraphFrame = GraphFrame(allUsersEitherPostedOrCommented, edgeDf)
 
-    usersCommentingOnUsersGraphFrame.vertices.write.parquet(s"$combinedDfParquetDir/userCommentingOnUsersVertices")
-    usersCommentingOnUsersGraphFrame.edges.write.parquet(s"$combinedDfParquetDir/userCommentingOnUsersEdges")
+    usersCommentingOnUsersGraphFrame.vertices.write.parquet(s"$outputDirectory/userCommentingOnUsersVertices")
+    usersCommentingOnUsersGraphFrame.edges.write.parquet(s"$outputDirectory/userCommentingOnUsersEdges")
 
     // create 2nd graph type nodes are subreddit and user - edges are subreddit-posts-user user-comments-user
 
@@ -84,11 +84,8 @@ object CreateAndSaveInitialGraphs {
     val subPostUserCommentGraph = GraphFrame(subPostUserCommentGraphNodeDf, subPostUserCommentGraphEdgeDf)
 
     // save out graph
-    subPostUserCommentGraph.vertices.write.parquet(s"$combinedDfParquetDir/subPostUserCommentGraphVertices")
-    subPostUserCommentGraph.edges.write.parquet(s"$combinedDfParquetDir/subPostUserCommentGraphEdges")
-
-
-
+    subPostUserCommentGraph.vertices.write.parquet(s"$outputDirectory/subPostUserCommentGraphVertices")
+    subPostUserCommentGraph.edges.write.parquet(s"$outputDirectory/subPostUserCommentGraphEdges")
 
     spark.stop()
   }
